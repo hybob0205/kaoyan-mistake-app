@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: shicuo-ai
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python launch.py
+    healthCheckPath: /health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: AGNES_API_BASE_URL
+        value: https://api.agnes-ai.cn/v1
+      - key: AGNES_MODEL
+        value: agnes-3.0-flash
+      - key: AGNES_API_KEY
+        sync: false
+      - key: APP_ACCESS_TOKEN
+        sync: false
