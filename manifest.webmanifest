@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "拾错｜考研错题复习",
+  "short_name": "拾错",
+  "description": "记录考研错题，整理知识点并安排复习。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f7f8f5",
+  "theme_color": "#f7f8f5",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
