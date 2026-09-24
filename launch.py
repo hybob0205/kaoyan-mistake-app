@@ -6,6 +6,7 @@ from urllib.error import HTTPError, URLError
 import json
 import os
 import re
+import hmac
 
 ROOT = Path(__file__).resolve().parent
 ENV_FILE = ROOT / '.env'
@@ -13,7 +14,9 @@ DEFAULTS = {
     'AGNES_API_BASE_URL': 'https://api.agnes-ai.cn/v1',
     'AGNES_MODEL': 'agnes-3.0-flash',
     'AGNES_API_KEY': '',
+    'APP_ACCESS_TOKEN': '',
 }
+PAGES_ORIGIN = 'https://hybob0205.github.io'
 
 
 def load_settings():
@@ -28,6 +31,7 @@ def load_settings():
     settings['AGNES_API_BASE_URL'] = os.environ.get('AGNES_API_BASE_URL', settings['AGNES_API_BASE_URL'])
     settings['AGNES_MODEL'] = os.environ.get('AGNES_MODEL', settings['AGNES_MODEL'])
     settings['AGNES_API_KEY'] = os.environ.get('AGNES_API_KEY', settings['AGNES_API_KEY'])
+    settings['APP_ACCESS_TOKEN'] = os.environ.get('APP_ACCESS_TOKEN', settings['APP_ACCESS_TOKEN'])
     return settings
 
 
@@ -42,14 +46,47 @@ def json_response(handler, status, data):
 
 
 class Handler(BaseHTTPRequestHandler):
+    def cors(self):
+        origin = self.headers.get('Origin', '')
+        if origin == PAGES_ORIGIN or origin in ('http://localhost:8788', 'http://127.0.0.1:8788'):
+            self.send_header('Access-Control-Allow-Origin', origin)
+            self.send_header('Vary', 'Origin')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+            self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+
+    def authorized(self):
+        token = load_settings()['APP_ACCESS_TOKEN']
+        if not token:
+            return self.client_address[0] in ('127.0.0.1', '::1')
+        supplied = self.headers.get('Authorization', '').removeprefix('Bearer ').strip()
+        return bool(supplied) and hmac.compare_digest(supplied, token)
+
+    def end_headers(self):
+        self.cors()
+        super().end_headers()
+
+    def do_OPTIONS(self):
+        if self.headers.get('Origin') not in (PAGES_ORIGIN, 'http://localhost:8788', 'http://127.0.0.1:8788'):
+            self.send_error(403)
+            return
+        self.send_response(204)
+        self.end_headers()
+
     def do_GET(self):
+        if self.path == '/health':
+            return json_response(self, 200, {'ok':True})
         if self.path == '/api/status':
+            if not self.authorized():
+                return json_response(self, 401, {'error':'请在 AI 服务设置中填写后端访问码。'})
             config = load_settings()
             return json_response(self, 200, {
                 'configured': bool(config['AGNES_API_KEY'] and config['AGNES_MODEL'] and config['AGNES_API_BASE_URL']),
                 'model': config['AGNES_MODEL'] if config['AGNES_API_KEY'] else '',
             })
         path = self.path.split('?', 1)[0]
+        if self.client_address[0] not in ('127.0.0.1', '::1'):
+            self.send_error(404)
+            return
         if path == '/':
             path = '/index.html'
         file = (ROOT / path.lstrip('/')).resolve()
@@ -70,6 +107,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.path != '/api/analyze':
             self.send_error(404)
             return
+        if not self.authorized():
+            return json_response(self, 401, {'error':'后端访问码错误或尚未配置。'})
         config = load_settings()
         if not config['AGNES_API_KEY']:
             return json_response(self, 503, {'error':'AI 服务没有配置密钥。'})
@@ -123,8 +162,10 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    server = ThreadingHTTPServer(('127.0.0.1', 8788), Handler)
-    print('拾错已启动：http://127.0.0.1:8788/\n保持窗口运行；停止请按 Control+C。')
+    port = int(os.environ.get('PORT', '8788'))
+    host = os.environ.get('HOST', '127.0.0.1')
+    server = ThreadingHTTPServer((host, port), Handler)
+    print(f'拾错服务已启动：{host}:{port}\n停止请按 Control+C。')
     try:
         server.serve_forever()
     except KeyboardInterrupt:
