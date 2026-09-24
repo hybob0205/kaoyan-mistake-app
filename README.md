@@ -1,29 +1,30 @@
 # 拾错｜考研错题复习
 
-按科目记录考研错题、安排复习，并按知识点整理薄弱项。网页部署在 GitHub Pages，AI 接口由独立 Python 服务安全调用 Agnes。
+拾错是可添加到 iPhone / iPad 主屏幕的轻量 Web App。错题、复习进度和设置仅保存在当前设备浏览器中；无需注册账号，也无需租用后端服务器。
 
-## 使用 AI
+## 在 iPhone / iPad 上安装
 
-浏览器只保存后端地址和访问码；Agnes API 密钥只配置在后端环境变量中，不会进入网页或 GitHub 仓库。
+1. 用 Safari 打开 [拾错](https://hybob0205.github.io/kaoyan-mistake-app/)。
+2. 点分享按钮，选择“添加到主屏幕”。
+3. 从主屏幕图标打开即可。首次打开需联网加载；加载后的页面外壳可离线打开，AI 分析需要网络。
 
-### 部署后端到 Render
+## 配置 AI
 
-1. 先在 Agnes 控制台撤销聊天中暴露过的旧密钥，并创建新密钥。
-2. 登录 [Render](https://render.com/)，选择 **New + → Blueprint**，连接 `hybob0205/kaoyan-mistake-app` 仓库并部署。仓库中的 `render.yaml` 会创建 Python API 服务。
-3. 在 Render 服务环境变量中填入 `AGNES_API_KEY`（新密钥）和 `APP_ACCESS_TOKEN`（自己生成的长随机访问码）。`AGNES_API_BASE_URL` 与 `AGNES_MODEL` 已预设。保存后等待服务部署完成。
-4. 复制 Render 提供的 `https://…onrender.com` 服务地址。
-5. 打开 [拾错](https://hybob0205.github.io/kaoyan-mistake-app/)，进入“AI 服务状态”，填写 Render 地址和同一个 `APP_ACCESS_TOKEN`，点击“保存并连接”。看到“已连接”后即可在新增或错题详情中使用 AI 分析。
-6. 把网页地址和访问码交给学习者，在她的设备上也填入服务地址与访问码。访问码只需分享给使用者，不要放入代码仓库。
+在错题库中打开“AI 服务状态”，填入 Agnes 的 API 地址、模型名称和 API 密钥。地址与模型默认值为 `https://api.agnes-ai.cn/v1` 和 `agnes-3.0-flash`。每台设备各自填写一次。
 
-生成长随机访问码（在终端运行）：
+AI 由设备浏览器直接请求模型服务，不需要自建后端服务器。密钥保存在该设备的浏览器站点数据中，网页代码中没有预置密钥。只在本人控制的设备上填写；不要把含有密钥的设备交给他人。AI API 调用费用由模型服务商按账户规则收取。
 
-```bash
-python3 -c 'import secrets; print(secrets.token_urlsafe(32))'
-```
+**之前在聊天中出现过的旧密钥请先撤销并轮换。**
 
-Render 免费实例可能在一段时间无访问后休眠，首次 AI 请求需要等待服务唤醒。错题数据仍保存在各自浏览器中；这不会自动同步到协助者设备。
+## 数据与备份
 
-## 本机版
+错题与设置都保存在当前设备浏览器中。iPhone 与 iPad 的记录不会自动同步；可在错题总库导出 JSON 备份，并在另一台设备导入。不要清除 Safari 网站数据，除非已导出备份。
+
+## GitHub Pages
+
+`main` 分支包含 Pages Actions 工作流。每次推送会运行 `build_pages.py`，把网页、PWA 图标、清单和离线缓存文件打包到 `site/`。
+
+## 本机预览
 
 需要 Python 3：
 
@@ -31,12 +32,4 @@ Render 免费实例可能在一段时间无访问后休眠，首次 AI 请求需
 python3 launch.py
 ```
 
-访问 `http://127.0.0.1:8788/`。本机版读取 `.env`；凭据不会发送到浏览器或加入 Git。可参考 `.env.example`。
-
-## GitHub Pages
-
-`main` 分支包含 Pages Actions 工作流。每次推送会从 `index.html`、`app.css`、`app.js` 生成 `site/` 静态站点并部署。Pages 负责网页；独立后端服务提供 AI API。后端只接受已配置的访问码，并限制浏览器跨域来源为本 Pages 站点。
-
-## 数据
-
-错题保存在当前浏览器的 `localStorage`。本机地址和 GitHub Pages 地址、以及不同设备之间的数据不会自动互通；请从错题总库导出 JSON 备份，再在另一地址导入。清除浏览器数据前也请先备份。
+访问 `http://127.0.0.1:8788/`。AI 需要在应用内单独填写 API 密钥。
