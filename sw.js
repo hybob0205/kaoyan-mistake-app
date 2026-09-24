@@ -1,5 +1,5 @@
-const CACHE = 'shicuo-pwa-v6';
-const FILES = ['./', './index.html', './app.css?v=9', './app.js?v=8', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
+const CACHE = 'shicuo-pwa-v7';
+const FILES = ['./', './index.html', './app.css?v=10', './app.js?v=9', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES)).then(() => self.skipWaiting()));
 });
